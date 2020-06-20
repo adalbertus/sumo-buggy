@@ -1,8 +1,14 @@
 let sensorLeft = 0
 let sensorRight = 0
+let start = false
 
 pins.setPull(DigitalPin.P15, PinPullMode.PullUp)
 pins.setPull(DigitalPin.P16, PinPullMode.PullUp)
+
+function readSensors() {
+    sensorRight = pins.digitalReadPin(DigitalPin.P15)
+    sensorLeft = pins.digitalReadPin(DigitalPin.P16)
+}
 
 function driveForward(ms = 0) {
     pins.servoWritePin(AnalogPin.P1, 0)
@@ -13,9 +19,9 @@ function driveForward(ms = 0) {
     }
 }
 
-function driveBackward(ms = 100) {
-    pins.servoWritePin(AnalogPin.P1, 0)
-    pins.servoWritePin(AnalogPin.P2, 180)
+function driveBackward(ms = 500) {
+    pins.servoWritePin(AnalogPin.P1, 180)
+    pins.servoWritePin(AnalogPin.P2, 0)
     if(ms > 0) {
         pause(ms)
         driveStop()
@@ -45,7 +51,17 @@ function driveLeft(ms = 100) {
     }
 }
 
-function turn180(ms = 100) {
+function turnIfNeeded() {
+    driveStop()
+    pause(50)
+    readSensors()
+    if (sensorRight == 0 && sensorLeft == 0) {
+        driveBackward()
+        turnOver()
+    }
+}
+
+function turnOver(ms = 500) {
     pins.servoWritePin(AnalogPin.P1, 180)
     pins.servoWritePin(AnalogPin.P2, 180)
     if(ms > 0) {
@@ -55,26 +71,35 @@ function turn180(ms = 100) {
 }
 
 function goSumo() {
-    sensorRight = pins.digitalReadPin(DigitalPin.P15)
-    sensorLeft = pins.digitalReadPin(DigitalPin.P16)
+    readSensors()
 
     if (sensorRight == 1 && sensorLeft == 1) { // move forward
     	driveForward() 
     } else if (sensorRight == 1 && sensorLeft == 0) { // turn left
-    	driveBackward() 
+    	//driveBackward()
+        //driveRight()
     } else if (sensorRight == 0 && sensorLeft == 1) { // turn right
-    	driveBackward()    	
-    } else { // stop
-        driveBackward()
-        turn180()        
+    	//driveBackward()
+        //driveLeft()
+    } else if (sensorRight == 0 && sensorLeft == 0) { // stop
+        turnIfNeeded()
     }
 }
 
 input.onButtonPressed(Button.A, function () {
-    turn180()    
+    pause(100)
+    //driveForward()
+    start = true   
+})
+
+input.onButtonPressed(Button.B, function () {
+    start = false
+    driveStop()
 })
 
 
 basic.forever(function () {
-	
+    if(start){
+        goSumo()
+    }
 })
